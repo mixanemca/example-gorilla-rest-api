@@ -1,0 +1,9 @@
+App:
+  ListenAddr: ""
+  Port: 8080
+
+Database:
+  Host: localhost
+  Name: gorilla-api
+  User: postgres
+  Password: postgres
