@@ -25,7 +25,7 @@ var (
 	databasePort     int
 	databaseName     string
 	databaseUser     string
-	databasePassword string
+	//databasePassword string //commented while unused
 )
 
 var logLevelIds = map[slog.Level][]string{
@@ -96,15 +96,33 @@ func New(version, build string) (*Config, error) {
 	pflag.StringVarP(&databaseUser, "database.user", "U", "postgres", "database user")
 	pflag.Parse()
 
-	viper.BindPFlag("http.address", pflag.Lookup("http.address"))
-	viper.BindPFlag("http.timeout.read", pflag.Lookup("http.timeout.read"))
-	viper.BindPFlag("http.timeout.write", pflag.Lookup("http.timeout.write"))
-	viper.BindPFlag("log.level", pflag.Lookup("log.level"))
-	viper.BindPFlag("log.format", pflag.Lookup("log.format"))
-	viper.BindPFlag("databse.host", pflag.Lookup("database.host"))
-	viper.BindPFlag("databse.port", pflag.Lookup("database.port"))
-	viper.BindPFlag("databse.name", pflag.Lookup("database.name"))
-	viper.BindPFlag("databse.user", pflag.Lookup("database.user"))
+	if err := viper.BindPFlag("http.address", pflag.Lookup("http.address")); err != nil {
+		return nil, err
+	}
+	if err := viper.BindPFlag("http.timeout.read", pflag.Lookup("http.timeout.read")); err != nil {
+		return nil, err
+	}
+	if err := viper.BindPFlag("http.timeout.write", pflag.Lookup("http.timeout.write")); err != nil {
+		return nil, err
+	}
+	if err := viper.BindPFlag("log.level", pflag.Lookup("log.level")); err != nil {
+		return nil, err
+	}
+	if err := viper.BindPFlag("log.format", pflag.Lookup("log.format")); err != nil {
+		return nil, err
+	}
+	if err := viper.BindPFlag("database.host", pflag.Lookup("database.host")); err != nil {
+		return nil, err
+	}
+	if err := viper.BindPFlag("database.port", pflag.Lookup("database.port")); err != nil {
+		return nil, err
+	}
+	if err := viper.BindPFlag("database.name", pflag.Lookup("database.name")); err != nil {
+		return nil, err
+	}
+	if err := viper.BindPFlag("database.user", pflag.Lookup("database.user")); err != nil {
+		return nil, err
+	}
 
 	if configPath != "" {
 		// Use config file from the flag.
