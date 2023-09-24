@@ -1,7 +1,9 @@
 package config
 
 import (
+	"fmt"
 	"log/slog"
+	"os"
 	"strings"
 
 	"github.com/spf13/pflag"
@@ -26,6 +28,7 @@ var (
 	databaseName     string
 	databaseUser     string
 	//databasePassword string //commented while unused
+	versionFlag bool
 )
 
 var logLevelIds = map[slog.Level][]string{
@@ -94,7 +97,14 @@ func New(version, build string) (*Config, error) {
 	pflag.IntVarP(&databasePort, "database.port", "P", 5432, "database port")
 	pflag.StringVarP(&databaseName, "database.name", "N", "gapi", "database name")
 	pflag.StringVarP(&databaseUser, "database.user", "U", "postgres", "database user")
+	pflag.BoolVarP(&versionFlag, "version", "v", false, "show version and build info")
 	pflag.Parse()
+
+	if versionFlag {
+		fmt.Printf("version: %s\n", version)
+		fmt.Printf("build: %s\n", build)
+		os.Exit(0)
+	}
 
 	if err := viper.BindPFlag("http.address", pflag.Lookup("http.address")); err != nil {
 		return nil, err
