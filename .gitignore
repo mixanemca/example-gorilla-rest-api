@@ -7,7 +7,7 @@
 *.dll
 *.so
 *.dylib
-example-gorilla-rest-api
+bin/example-gorilla-rest-api
 !cmd/example-gorilla-rest-api
 
 # Test binary, built with `go test -c`
