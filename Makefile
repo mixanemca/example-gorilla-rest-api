@@ -20,6 +20,7 @@ test:
 .PHONY: lint
 lint:
 	golangci-lint run ./...
+	staticcheck ./...
 
 ## build: Compile the binary.
 .PHONY: build

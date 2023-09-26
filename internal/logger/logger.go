@@ -1,3 +1,4 @@
+// Package logger provides types and functions for make a logger with format and level.
 package logger
 
 import (

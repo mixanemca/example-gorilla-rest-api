@@ -1,3 +1,5 @@
+// Package config provides types and functions for parsing config file,
+// environment variables and command-line flags.
 package config
 
 import (
@@ -43,6 +45,7 @@ var logFormatIds = map[int][]string{
 	text: {"text"},
 }
 
+// Config represents the config file.
 type Config struct {
 	HTTP     HTTP     `mapstructure:"http-config"`
 	Logger   Log      `mapstructure:"log"`
@@ -51,21 +54,25 @@ type Config struct {
 	Build    string
 }
 
+// HTTP represents HTTP section in config file.
 type HTTP struct {
 	Address string      `mapstructure:"address"`
 	Timeout HTTPTimeout `mapstructure:"timeout"`
 }
 
+// HTTPTimeout represents HTTP timeout section in config file.
 type HTTPTimeout struct {
 	Read  int `mapstructure:"read"`
 	Write int `mapstructure:"write"`
 }
 
+// Log represents log section in config file.
 type Log struct {
 	Level  string `mapstructure:"level"`
 	Format string `mapstructure:"format"`
 }
 
+// Database represents database section in config file.
 type Database struct {
 	Host     string `mapstructure:"host"`
 	Port     int    `mapstructure:"port"`
@@ -74,6 +81,8 @@ type Database struct {
 	Password string `mapstructure:"password"`
 }
 
+// New make and return a new config.
+// Parse config file, environment variables and flags to config struct.
 func New(version, build string) (*Config, error) {
 	// Set enviroment prefix and bind to viper.
 	viper.SetEnvPrefix("EGRA")
