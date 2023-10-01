@@ -47,7 +47,7 @@ var logFormatIds = map[int][]string{
 
 // Config represents the config file.
 type Config struct {
-	HTTP     HTTP     `mapstructure:"http-config"`
+	HTTP     HTTP     `mapstructure:"http"`
 	Logger   Log      `mapstructure:"log"`
 	Database Database `mapstructure:"database"`
 	Version  string
@@ -149,6 +149,7 @@ func New(version, build string) (*Config, error) {
 	} else {
 		// Set config name, path and type.
 		viper.AddConfigPath("configs")
+		viper.AddConfigPath("../../configs")
 		viper.AddConfigPath("/etc/example-gorilla-rest-api")
 		viper.SetConfigName("config")
 		viper.SetConfigType("yaml")
