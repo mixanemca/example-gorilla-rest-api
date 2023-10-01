@@ -3,7 +3,9 @@ package main
 import (
 	"log"
 	"log/slog"
+	"net/http"
 
+	api "github.com/mixanemca/example-gorilla-rest-api/internal/app"
 	"github.com/mixanemca/example-gorilla-rest-api/internal/config"
 	"github.com/mixanemca/example-gorilla-rest-api/internal/logger"
 )
@@ -37,4 +39,8 @@ func main() {
 		slog.String("log format", cfg.Logger.Format),
 	)
 	log.Debug("debug messages are enabled")
+
+	api.RunHandlers()
+	log.Info("service run on " + cfg.HTTP.Address)
+	http.ListenAndServe(cfg.HTTP.Address, nil)
 }
