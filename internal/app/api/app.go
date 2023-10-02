@@ -8,12 +8,12 @@ import (
 	v1 "github.com/mixanemca/example-gorilla-rest-api/internal/app/api/handler/v1"
 )
 
-func RunHandlers() {
+func Routers() {
 	router := mux.NewRouter()
 
 	userHandler := &v1.UsersController{}
-	router.HandleFunc("/", ShowEndpoints).Methods("GET")
-	router.HandleFunc("/user", userHandler.CreateUser).Methods("POST")
+	router.HandleFunc("/", OpenAPI).Methods("GET")
+	router.HandleFunc("/user", userHandler.CreateUserByID).Methods("POST")
 	router.HandleFunc("/users", userHandler.GetUsers).Methods("GET")
 	router.HandleFunc("/user/{id}", userHandler.GetUser).Methods("GET")
 	router.HandleFunc("/user/{id}", userHandler.UpdateUser).Methods("PUT")
@@ -23,7 +23,7 @@ func RunHandlers() {
 }
 
 // ShowEndpoints is the temporary, while haven't swagger
-func ShowEndpoints(w http.ResponseWriter, r *http.Request) {
+func OpenAPI(w http.ResponseWriter, r *http.Request) {
 	endpoints := []string{
 		"POST /user - Создать пользователя",
 		"GET /users - Получить список пользователей",
