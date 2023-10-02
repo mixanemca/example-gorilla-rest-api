@@ -6,7 +6,7 @@ import "net/http"
 type UsersController struct {
 }
 
-func (u *UsersController) CreateUser(w http.ResponseWriter, r *http.Request) {
+func (u *UsersController) CreateUserByID(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 	w.Write([]byte("not implemented"))
 }
