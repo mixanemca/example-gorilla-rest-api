@@ -3,7 +3,6 @@ package main
 import (
 	"log"
 	"log/slog"
-	"net/http"
 
 	api "github.com/mixanemca/example-gorilla-rest-api/internal/app/api"
 	"github.com/mixanemca/example-gorilla-rest-api/internal/config"
@@ -18,7 +17,7 @@ var (
 func main() {
 	cfg, err := config.New(version, build)
 	if err != nil {
-		log.Fatalf("error occurred while reading config: %s\n", err.Error())
+		log.Fatalf("error occurred while reading config: %s\n", err.Error()) // TODO: change when external logger was added
 	}
 	if cfg == nil {
 		slog.Error("config is empty")
@@ -40,7 +39,6 @@ func main() {
 	)
 	log.Debug("debug messages are enabled")
 
-	api.Routers()
-	log.Info("service run on " + cfg.HTTP.Address)
-	http.ListenAndServe(cfg.HTTP.Address, nil)
+	apiApp := api.NewApp(*cfg, log)
+	apiApp.Run()
 }
