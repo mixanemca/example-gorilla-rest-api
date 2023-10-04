@@ -3,30 +3,19 @@ package v1
 
 import "net/http"
 
-type UsersController struct {
+type UserRepository interface {
+	CreateUser(w http.ResponseWriter, r *http.Request)
 }
 
-func (u *UsersController) CreateUserByID(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusNotImplemented)
-	w.Write([]byte("not implemented"))
+var Instance UserRepository = userService{
+	//db: db.GetDB()
 }
 
-func (u *UsersController) GetUsers(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusNotImplemented)
-	w.Write([]byte("not implemented"))
+type userService struct {
+	//db *db.conn
 }
 
-func (u *UsersController) GetUser(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusNotImplemented)
-	w.Write([]byte("not implemented"))
-}
-
-func (u *UsersController) UpdateUser(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusNotImplemented)
-	w.Write([]byte("not implemented"))
-}
-
-func (u *UsersController) DeleteUser(w http.ResponseWriter, r *http.Request) {
+func (u userService) CreateUser(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 	w.Write([]byte("not implemented"))
 }
