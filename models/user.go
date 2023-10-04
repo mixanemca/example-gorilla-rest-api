@@ -1,5 +1,5 @@
 // Package entity model for user
-package entity
+package models
 
 type User struct {
 	BaseModel
