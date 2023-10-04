@@ -149,7 +149,6 @@ func New(version, build string) (*Config, error) {
 	} else {
 		// Set config name, path and type.
 		viper.AddConfigPath("configs")
-		viper.AddConfigPath("../../configs")
 		viper.AddConfigPath("/etc/example-gorilla-rest-api")
 		viper.SetConfigName("config")
 		viper.SetConfigType("yaml")
