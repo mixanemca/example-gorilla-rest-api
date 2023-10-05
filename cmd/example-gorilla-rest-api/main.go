@@ -12,6 +12,10 @@ import (
 	"github.com/mixanemca/example-gorilla-rest-api/internal/logger"
 )
 
+// @version 1.0.0
+// @title Example gorilla rest API
+// @description API server for gorilla example application
+
 var (
 	version string = "unknown"
 	build   string = "unknown"
