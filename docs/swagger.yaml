@@ -1,0 +1,51 @@
+definitions:
+  models.IDInfo:
+    properties:
+      id:
+        description: ID of the created record
+        type: string
+    type: object
+  models.User:
+    properties:
+      email:
+        type: string
+      name:
+        type: string
+      phone:
+        type: string
+      surname:
+        type: string
+      username:
+        type: string
+    type: object
+info:
+  contact: {}
+  description: API server for gorilla example application
+  title: Example gorilla rest API
+  version: 1.0.0
+paths:
+  /user:
+    post:
+      description: Create user
+      parameters:
+      - description: body for user content
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.User'
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.IDInfo'
+        "400":
+          description: Bad Request
+        "403":
+          description: Forbidden
+        "500":
+          description: Internal Server Error
+      summary: Create user
+      tags:
+      - users
+swagger: "2.0"
