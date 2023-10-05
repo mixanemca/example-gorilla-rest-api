@@ -8,9 +8,11 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
+	_ "github.com/mixanemca/example-gorilla-rest-api/docs"
 	v1 "github.com/mixanemca/example-gorilla-rest-api/internal/app/api/handler/v1"
 	"github.com/mixanemca/example-gorilla-rest-api/internal/app/service"
 	"github.com/mixanemca/example-gorilla-rest-api/internal/config"
+	httpSwagger "github.com/swaggo/http-swagger"
 )
 
 type app struct {
@@ -38,6 +40,8 @@ func NewApp(cfg config.Config, logger *slog.Logger) *app {
 
 func (a *app) Run() {
 	router := mux.NewRouter()
+
+	router.PathPrefix("/swagger/").Handler(httpSwagger.Handler(httpSwagger.URL("doc.json")))
 	router.HandleFunc("/user", v1.NewUserRepository().CreateUser).Methods(http.MethodPost)
 	http.Handle("/", router)
 

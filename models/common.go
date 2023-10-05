@@ -11,3 +11,7 @@ type BaseModel struct {
 	UpdatedAt time.Time `json:"-"`
 	DeletedAt time.Time `json:"-"`
 }
+
+type IDInfo struct {
+	ID string `json:"id"` // ID of the created record
+}
