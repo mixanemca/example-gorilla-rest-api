@@ -2,6 +2,7 @@
 package api
 
 import (
+	"context"
 	"log/slog"
 	"net/http"
 	"time"
@@ -47,5 +48,19 @@ func (a *app) Run() {
 			a.publicHTTPServer.ErrorLog.Fatalf("error occurred while running http server: %s\n", err.Error()) // TODO: change when external logger was added
 		}
 	}()
-	time.Sleep(time.Minute * 2)
+}
+
+func (a *app) Shutdown(ctx context.Context) error {
+	<-ctx.Done()
+	a.logger.Info("shutting down server gracefully")
+
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), time.Duration(5*time.Second))
+	defer cancel()
+
+	if err := a.publicHTTPServer.Shutdown(shutdownCtx); err != nil {
+		a.logger.Error("Stopping service error: %v", err)
+	}
+	a.logger.Info("HTTP server successfully stopped")
+
+	return nil
 }
