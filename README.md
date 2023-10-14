@@ -18,3 +18,23 @@ Usage of ./example-gorilla-rest-api:
   -l, --log.level log.level      log level (default info)
 pflag: help requested
 ```
+
+## Swagger
+To generate documentation we will use [swag](https://github.com/swaggo/swag). How to install:
+1. Add comments to your API source code. At least fill follow:
+```go
+// @version 
+// @title 
+// @description 
+```
+2. Download swag by using:
+`go install github.com/swaggo/swag/cmd/swag@latest`
+3. Run the Swag in your Go project root folder which contains main.go file, Swag will parse comments and generate required files(docs folder and docs/doc.go).
+` swag init -g cmd/example-gorilla-rest-api/main.go`
+4. Download http-swagger by using:
+`go get -u github.com/swaggo/http-swagger`
+And import following in your code:
+`import "github.com/swaggo/http-swagger"`
+5. Add import to `docs` directory
+`_ "github.com/mixanemca/example-gorilla-rest-api/docs"`
+6. Add to your router - depends on the library you are using (see examples in documentation).

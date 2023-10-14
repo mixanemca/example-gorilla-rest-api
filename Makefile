@@ -22,6 +22,11 @@ lint:
 	golangci-lint run ./...
 	staticcheck ./...
 
+## swagger: Generate documentation
+.PHONY: swagger
+swagger:
+	swag init -g cmd/example-gorilla-rest-api/main.go  
+
 ## build: Compile the binary.
 .PHONY: build
 build:
