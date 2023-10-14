@@ -1,5 +1,5 @@
-// Package api for handlers
-package api
+// Package app for handlers
+package app
 
 import (
 	"context"
@@ -22,7 +22,7 @@ type app struct {
 	service          *service.Service
 }
 
-func NewApp(cfg config.Config, logger *slog.Logger) *app {
+func New(cfg config.Config, logger *slog.Logger) *app {
 	logger.Debug("Create new API app")
 
 	userRepo := v1.NewUserRepository()

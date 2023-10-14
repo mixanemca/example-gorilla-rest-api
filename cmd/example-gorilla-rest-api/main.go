@@ -7,7 +7,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	api "github.com/mixanemca/example-gorilla-rest-api/internal/app/api"
+	"github.com/mixanemca/example-gorilla-rest-api/internal/app"
 	"github.com/mixanemca/example-gorilla-rest-api/internal/config"
 	"github.com/mixanemca/example-gorilla-rest-api/internal/logger"
 )
@@ -47,11 +47,11 @@ func main() {
 	log.Debug("debug messages are enabled")
 
 	// start HTTP server
-	apiApp := api.NewApp(*cfg, log)
-	apiApp.Run()
+	app := app.New(*cfg, log)
+	app.Run()
 
 	// gracefully shutdown HTTP server
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
-	apiApp.Shutdown(ctx)
+	app.Shutdown(ctx)
 }
