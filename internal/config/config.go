@@ -4,6 +4,7 @@ package config
 
 import (
 	"fmt"
+	"log"
 	"log/slog"
 	"os"
 	"strings"
@@ -156,7 +157,12 @@ func New(version, build string) (*Config, error) {
 
 	// Discover and load the configuration file from disk.
 	if err := viper.ReadInConfig(); err != nil {
-		return nil, err
+		switch err.(type) {
+		case viper.ConfigFileNotFoundError:
+			log.Println("No Config file found, loaded config from Environment - Default path ./conf")
+		default:
+			log.Fatalf("Error when Fetching Configuration - %s", err)
+		}
 	}
 
 	// unmarshal unmarshals the config into a Struct
