@@ -5,6 +5,8 @@ import (
 	"net/http"
 )
 
+//go:generate mockgen -source=user.go -destination=mocks/mock.go
+
 type UserRepository interface {
 	CreateUser(w http.ResponseWriter, r *http.Request)
 }
