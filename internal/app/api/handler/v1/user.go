@@ -76,7 +76,7 @@ func (u UserRepo) CreateUser(w http.ResponseWriter, r *http.Request) {
 // @Failure 400
 // @Failure 403
 // @Failure 500
-// @router /users [get]
+// @router /user/list [get]
 func (u UserRepo) GetUsers(w http.ResponseWriter, r *http.Request) {
 	var users models.Users
 
