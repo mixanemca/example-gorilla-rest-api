@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
@@ -30,8 +31,8 @@ var (
 	databasePort     int
 	databaseName     string
 	databaseUser     string
-	//databasePassword string //commented while unused
-	versionFlag bool
+	databasePassword string
+	versionFlag      bool
 )
 
 var logLevelIds = map[slog.Level][]string{
@@ -48,11 +49,12 @@ var logFormatIds = map[int][]string{
 
 // Config represents the config file.
 type Config struct {
-	HTTP     HTTP     `mapstructure:"http"`
-	Logger   Log      `mapstructure:"log"`
-	Database Database `mapstructure:"database"`
-	Version  string
-	Build    string
+	HTTP            HTTP     `mapstructure:"http"`
+	Logger          Log      `mapstructure:"log"`
+	Database        Database `mapstructure:"database"`
+	Version         string
+	Build           string
+	ShutdownTimeout time.Duration `mapstructure:"shutdown_timeout"`
 }
 
 // HTTP represents HTTP section in config file.
@@ -80,11 +82,17 @@ type Database struct {
 	Name     string `mapstructure:"name"`
 	User     string `mapstructure:"user"`
 	Password string `mapstructure:"password"`
+	Timeout  int    `mapstructure:"timeout"`
+	MaxConns int32  `mapstructure:"max_conns"`
 }
 
 // New make and return a new config.
 // Parse config file, environment variables and flags to config struct.
 func New(version, build string) (*Config, error) {
+	// Set defaults
+	viper.SetDefault("database.timeout", 5)
+	viper.SetDefault("database.max_conns", 5)
+
 	// Set enviroment prefix and bind to viper.
 	viper.SetEnvPrefix("EGRA")
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
@@ -107,6 +115,7 @@ func New(version, build string) (*Config, error) {
 	pflag.IntVarP(&databasePort, "database.port", "P", 5432, "database port")
 	pflag.StringVarP(&databaseName, "database.name", "N", "gapi", "database name")
 	pflag.StringVarP(&databaseUser, "database.user", "U", "postgres", "database user")
+	pflag.StringVarP(&databasePassword, "database.password", "W", "postgres", "database password")
 	pflag.BoolVarP(&versionFlag, "version", "v", false, "show version and build info")
 	pflag.Parse()
 
@@ -141,6 +150,9 @@ func New(version, build string) (*Config, error) {
 		return nil, err
 	}
 	if err := viper.BindPFlag("database.user", pflag.Lookup("database.user")); err != nil {
+		return nil, err
+	}
+	if err := viper.BindPFlag("database.password", pflag.Lookup("database.password")); err != nil {
 		return nil, err
 	}
 
