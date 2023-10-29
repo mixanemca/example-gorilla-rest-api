@@ -10,8 +10,10 @@ import (
 	"github.com/gorilla/mux"
 	_ "github.com/mixanemca/example-gorilla-rest-api/docs"
 	v1 "github.com/mixanemca/example-gorilla-rest-api/internal/app/api/handler/v1"
+	"github.com/mixanemca/example-gorilla-rest-api/internal/app/api/middleware"
 	"github.com/mixanemca/example-gorilla-rest-api/internal/app/service"
 	"github.com/mixanemca/example-gorilla-rest-api/internal/config"
+	pg "github.com/mixanemca/example-gorilla-rest-api/internal/storage"
 	httpSwagger "github.com/swaggo/http-swagger"
 )
 
@@ -25,7 +27,8 @@ type app struct {
 func New(cfg config.Config, logger *slog.Logger) *app {
 	logger.Debug("Create new API app")
 
-	userRepo := v1.NewUserRepository()
+	db := pg.NewConnection(cfg)
+	userRepo := v1.NewUserRepository(db)
 	service := service.NewService(userRepo)
 
 	return &app{
@@ -41,8 +44,15 @@ func New(cfg config.Config, logger *slog.Logger) *app {
 func (a *app) Run() {
 	router := mux.NewRouter()
 
+	router.Use(middleware.LoggingMiddleware(a.logger))
+
 	router.PathPrefix("/swagger/").Handler(httpSwagger.Handler(httpSwagger.URL("doc.json")))
-	router.HandleFunc("/user", v1.NewUserRepository().CreateUser).Methods(http.MethodPost)
+	router.HandleFunc("/user", a.service.CreateUser).Methods(http.MethodPost)
+	router.HandleFunc("/users", a.service.GetUsers).Methods(http.MethodGet)
+	router.HandleFunc("/user/{id:[0-9a-f\\-]+}", a.service.GetUserByID).Methods(http.MethodGet)
+	router.HandleFunc("/user/{id:[0-9a-f\\-]+}", a.service.UpdateUser).Methods(http.MethodPut)
+	router.HandleFunc("/user/{id:[0-9a-f\\-]+}", a.service.DeleteUser).Methods(http.MethodDelete)
+
 	http.Handle("/", router)
 
 	// start HTTP server
@@ -54,17 +64,15 @@ func (a *app) Run() {
 	}()
 }
 
-func (a *app) Shutdown(ctx context.Context) error {
+func (a *app) Shutdown(ctx context.Context) {
 	<-ctx.Done()
 	a.logger.Info("shutting down server gracefully")
 
-	shutdownCtx, cancel := context.WithTimeout(context.Background(), time.Duration(5*time.Second))
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), time.Duration(a.config.ShutdownTimeout))
 	defer cancel()
 
 	if err := a.publicHTTPServer.Shutdown(shutdownCtx); err != nil {
 		a.logger.Error("Stopping service error: %v", err)
 	}
 	a.logger.Info("HTTP server successfully stopped")
-
-	return nil
 }
