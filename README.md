@@ -38,3 +38,13 @@ And import following in your code:
 5. Add import to `docs` directory
 `_ "github.com/mixanemca/example-gorilla-rest-api/docs"`
 6. Add to your router - depends on the library you are using (see examples in documentation).
+
+## Migrations
+Install goose one of the commands `brew install` or `goose or go install github.com/pressly/goose/v3/cmd/goose@latest`.
+
+Create go file for migrations execute in terminal:
+```bash
+$ mkdir internal/migrations
+$ cd  internal/migrations
+$ ~/go/bin/goose create add_updated_at go
+```
