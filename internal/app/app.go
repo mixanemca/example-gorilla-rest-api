@@ -43,15 +43,15 @@ func New(cfg config.Config, logger *slog.Logger) *app {
 
 func (a *app) Run() {
 	router := mux.NewRouter()
-
 	router.Use(middleware.LoggingMiddleware(a.logger))
 
 	router.PathPrefix("/swagger/").Handler(httpSwagger.Handler(httpSwagger.URL("doc.json")))
-	router.HandleFunc("/user", a.service.CreateUser).Methods(http.MethodPost)
-	router.HandleFunc("/users", a.service.GetUsers).Methods(http.MethodGet)
-	router.HandleFunc("/user/{id:[0-9a-f\\-]+}", a.service.GetUserByID).Methods(http.MethodGet)
-	router.HandleFunc("/user/{id:[0-9a-f\\-]+}", a.service.UpdateUser).Methods(http.MethodPut)
-	router.HandleFunc("/user/{id:[0-9a-f\\-]+}", a.service.DeleteUser).Methods(http.MethodDelete)
+	userRouter := router.PathPrefix("/user").Subrouter()
+	userRouter.HandleFunc("", a.service.CreateUser).Methods(http.MethodPost)
+	userRouter.HandleFunc("/list", a.service.GetUsers).Methods(http.MethodGet)
+	userRouter.HandleFunc("/{id:[0-9a-f\\-]+}", a.service.GetUserByID).Methods(http.MethodGet)
+	userRouter.HandleFunc("/{id:[0-9a-f\\-]+}", a.service.UpdateUser).Methods(http.MethodPut)
+	userRouter.HandleFunc("/{id:[0-9a-f\\-]+}", a.service.DeleteUser).Methods(http.MethodDelete)
 
 	http.Handle("/", router)
 
