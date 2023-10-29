@@ -23,8 +23,8 @@ lint:
 	staticcheck ./...
 
 ## swagger: Generate documentation
-.PHONY: swagger
-swagger:
+.PHONY: doc
+doc:
 	swag init -g cmd/example-gorilla-rest-api/main.go  
 
 ## build: Compile the binary.
