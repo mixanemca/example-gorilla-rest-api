@@ -15,3 +15,7 @@ database:
   name: "gapi"
   user: "postgres"
   password: "password"
+  timeout: 5
+  max_conns: 5
+
+shutdown_timeout: 5s
