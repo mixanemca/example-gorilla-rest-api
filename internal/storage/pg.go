@@ -3,12 +3,16 @@ package pg
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"log"
 	"net/url"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	_ "github.com/lib/pq"
 	"github.com/mixanemca/example-gorilla-rest-api/internal/config"
+	_ "github.com/mixanemca/example-gorilla-rest-api/internal/migrations"
+	"github.com/pressly/goose/v3"
 )
 
 // NewConnection for create connection to database
@@ -39,6 +43,17 @@ func NewConnection(cfg config.Config) *pgxpool.Pool {
 	_, err = conn.Exec(context.Background(), ";")
 	if err != nil {
 		log.Fatalf("filed to set database connection %s", err.Error())
+	}
+
+	// make sql conn and init migrations
+	mdb, _ := sql.Open("postgres", poolConfig.ConnString())
+	err = mdb.Ping()
+	if err != nil {
+		log.Fatalf("filed to set database connection for migrations %s", err.Error())
+	}
+	err = goose.Up(mdb, "/var")
+	if err != nil {
+		log.Fatalf("filed to init migrations %s", err.Error())
 	}
 
 	return conn
