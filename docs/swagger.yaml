@@ -132,7 +132,7 @@ paths:
       summary: Update user
       tags:
       - users
-  /users:
+  /user/list:
     get:
       description: Get users
       responses:
