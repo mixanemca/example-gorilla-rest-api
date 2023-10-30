@@ -2,6 +2,8 @@
 package middleware
 
 import (
+	"bytes"
+	"io"
 	"net/http"
 	"strings"
 
@@ -17,9 +19,11 @@ func LoggingMiddleware(logger *slog.Logger) func(http.Handler) http.Handler {
 				return
 			}
 
-			logger.Info("Request: " + r.Method + " " + r.URL.Path)
+			body, _ := io.ReadAll(r.Body)
+			logger.Info("Request: " + r.Method + " " + r.URL.Path + string(body))
+			r.Body = io.NopCloser(bytes.NewBuffer(body))
+
 			next.ServeHTTP(w, r)
-			// TODO: logging params
 		})
 	}
 }
