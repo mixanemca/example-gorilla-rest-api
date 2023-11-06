@@ -7,6 +7,9 @@ import (
 	"net/http"
 	"time"
 
+	ut "github.com/go-playground/universal-translator"
+
+	"github.com/go-playground/validator/v10"
 	"github.com/gorilla/mux"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -24,12 +27,17 @@ type UserRepository interface {
 	DeleteUser(w http.ResponseWriter, r *http.Request)
 }
 type UserRepo struct {
-	db *pgxpool.Pool
+	db         *pgxpool.Pool
+	validate   *validator.Validate
+	translator ut.Translator
 }
 
 func NewUserRepository(db *pgxpool.Pool) *UserRepo {
+	validator, translator := utils.NewValidator()
 	return &UserRepo{
-		db: db,
+		db:         db,
+		validate:   validator,
+		translator: translator,
 	}
 }
 
@@ -52,8 +60,8 @@ func (u UserRepo) CreateUser(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid JSON", http.StatusBadRequest)
 		return
 	}
-	if errMessage := user.Validate(); errMessage != "" {
-		http.Error(w, errMessage, http.StatusBadRequest)
+	if err := u.validate.Struct(user); err != nil {
+		jsonErrResponse(w, u.translator, err)
 		return
 	}
 
@@ -182,8 +190,8 @@ func (u UserRepo) UpdateUser(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid JSON", http.StatusBadRequest)
 		return
 	}
-	if errMessage := user.Validate(); errMessage != "" {
-		http.Error(w, errMessage, http.StatusBadRequest)
+	if err := u.validate.Struct(user); err != nil {
+		jsonErrResponse(w, u.translator, err)
 		return
 	}
 
@@ -226,6 +234,8 @@ func (u UserRepo) DeleteUser(w http.ResponseWriter, r *http.Request) {
 	jsonResponse(w, http.StatusNoContent, nil)
 }
 
+//TODO: move responses to separated package
+
 // jsonResponse for convert response to json format
 func jsonResponse(w http.ResponseWriter, status int, model interface{}) {
 	w.Header().Set("Content-Type", "application/json")
@@ -242,5 +252,32 @@ func jsonResponse(w http.ResponseWriter, status int, model interface{}) {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
+	}
+}
+
+// jsonErrResponse for convert error response to json format
+func jsonErrResponse(w http.ResponseWriter, translator ut.Translator, err error) {
+	var fieldsErrors []models.FieldError
+
+	errs := err.(validator.ValidationErrors)
+	for _, e := range errs {
+		fieldsErrors = append(fieldsErrors, models.FieldError{
+			ErrorField:   e.Field(),
+			ErrorMessage: e.Translate(translator),
+		})
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusBadRequest)
+
+	jsonData, err := json.Marshal(fieldsErrors)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	_, err = w.Write(jsonData)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 }
