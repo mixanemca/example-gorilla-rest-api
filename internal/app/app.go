@@ -44,6 +44,7 @@ func New(cfg config.Config, logger *slog.Logger) *app {
 func (a *app) Run() {
 	router := mux.NewRouter()
 	router.Use(middleware.LoggingMiddleware(a.logger))
+	router.Use(middleware.PanicRecover(a.logger))
 
 	router.PathPrefix("/swagger/").Handler(httpSwagger.Handler(httpSwagger.URL("doc.json")))
 	userRouter := router.PathPrefix("/user").Subrouter()
