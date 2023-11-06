@@ -5,6 +5,14 @@ type Users []UserResponse
 
 type User struct {
 	BaseModel
+	Name     string
+	Surname  string
+	Username string
+	Email    string
+	Phone    string
+}
+
+type UserRequest struct {
 	Name     string `json:"name" validate:"required,alpha,min=3"`
 	Surname  string `json:"surname" validate:"required,alpha,min=3"`
 	Username string `json:"username" validate:"required,alphanum,min=3"`
@@ -21,4 +29,12 @@ type UserResponse struct {
 	Phone    string `json:"phone"`
 }
 
-// TODO: convert to entity and UserRequest struct
+func (u UserRequest) ConvertToEntity() User {
+	return User{
+		Name:     u.Name,
+		Surname:  u.Surname,
+		Username: u.Username,
+		Email:    u.Email,
+		Phone:    u.Phone,
+	}
+}

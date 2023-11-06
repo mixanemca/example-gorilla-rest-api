@@ -52,8 +52,7 @@ func NewUserRepository(db *pgxpool.Pool) *UserRepo {
 // @Failure 500
 // @router /user [post]
 func (u UserRepo) CreateUser(w http.ResponseWriter, r *http.Request) {
-	var user models.User
-
+	var user models.UserRequest
 	// Parse the JSON data from the request body and store it in the user variable
 	decoder := json.NewDecoder(r.Body)
 	if err := decoder.Decode(&user); err != nil {
@@ -66,14 +65,14 @@ func (u UserRepo) CreateUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var userID models.IDInfo
+	dbUser := user.ConvertToEntity()
 	query := "INSERT INTO users (created_at, updated_at, deleted_at, name, surname, username, email, phone) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id"
-	err := u.db.QueryRow(r.Context(), query, time.Now(), time.Now(), nil, user.Name, user.Surname, user.Username, user.Email, user.Phone).Scan(&userID.ID)
+	err := u.db.QueryRow(r.Context(), query, time.Now(), time.Now(), nil, dbUser.Name, dbUser.Surname, dbUser.Username, dbUser.Email, dbUser.Phone).Scan(&userID.ID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-
-	jsonResponse(w, http.StatusOK, user)
+	jsonResponse(w, http.StatusOK, userID)
 }
 
 // GetUsers method for get all users
@@ -87,7 +86,6 @@ func (u UserRepo) CreateUser(w http.ResponseWriter, r *http.Request) {
 // @router /user/list [get]
 func (u UserRepo) GetUsers(w http.ResponseWriter, r *http.Request) {
 	var users models.Users
-
 	query := "SELECT id, name, surname, username, email, phone FROM users WHERE deleted_at IS NULL;"
 	rows, err := u.db.Query(r.Context(), query)
 	if err != nil {
@@ -109,7 +107,6 @@ func (u UserRepo) GetUsers(w http.ResponseWriter, r *http.Request) {
 		}
 		users = append(users, user)
 	}
-
 	jsonResponse(w, http.StatusOK, users)
 }
 
@@ -137,7 +134,6 @@ func (u UserRepo) GetUserByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	rows.Close()
-
 	jsonResponse(w, http.StatusOK, user)
 }
 
@@ -158,7 +154,6 @@ func (u UserRepo) getUserByID(w http.ResponseWriter, r *http.Request, id string)
 		http.Error(w, "User not found", http.StatusNotFound)
 		return nil, pgx.ErrNoRows
 	}
-
 	return rows, nil
 }
 
@@ -174,7 +169,7 @@ func (u UserRepo) getUserByID(w http.ResponseWriter, r *http.Request, id string)
 // @Failure 500
 // @router /user/{id} [put]
 func (u UserRepo) UpdateUser(w http.ResponseWriter, r *http.Request) {
-	var user models.User
+	var user models.UserRequest
 	id := mux.Vars(r)["id"]
 
 	// сheck if the user exists
@@ -195,13 +190,13 @@ func (u UserRepo) UpdateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	dbUser := user.ConvertToEntity()
 	query := "UPDATE  users SET updated_at=$1, name=$2, surname=$3, username=$4, email=$5, phone=$6  WHERE id=$7;"
-	_, err = u.db.Exec(r.Context(), query, time.Now(), user.Name, user.Surname, user.Username, user.Email, user.Phone, id)
+	_, err = u.db.Exec(r.Context(), query, time.Now(), dbUser.Name, dbUser.Surname, dbUser.Username, dbUser.Email, dbUser.Phone, id)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-
 	jsonResponse(w, http.StatusNoContent, nil)
 }
 
@@ -230,54 +225,5 @@ func (u UserRepo) DeleteUser(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-
 	jsonResponse(w, http.StatusNoContent, nil)
-}
-
-//TODO: move responses to separated package
-
-// jsonResponse for convert response to json format
-func jsonResponse(w http.ResponseWriter, status int, model interface{}) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(status)
-	if model != nil {
-		jsonData, err := json.Marshal(model)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-
-		_, err = w.Write(jsonData)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-	}
-}
-
-// jsonErrResponse for convert error response to json format
-func jsonErrResponse(w http.ResponseWriter, translator ut.Translator, err error) {
-	var fieldsErrors []models.FieldError
-
-	errs := err.(validator.ValidationErrors)
-	for _, e := range errs {
-		fieldsErrors = append(fieldsErrors, models.FieldError{
-			ErrorField:   e.Field(),
-			ErrorMessage: e.Translate(translator),
-		})
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusBadRequest)
-
-	jsonData, err := json.Marshal(fieldsErrors)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	_, err = w.Write(jsonData)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
 }
