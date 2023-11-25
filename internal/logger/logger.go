@@ -16,9 +16,15 @@ func New(level, format string) (*slog.Logger, error) {
 	if err != nil {
 		return nil, err
 	}
-	logger = slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: l}))
+	logger = slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+		AddSource: true,
+		Level:     l,
+	}))
 	if format == "json" {
-		logger = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: l}))
+		logger = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+			AddSource: true,
+			Level:     l,
+		}))
 	}
 
 	return logger, nil
