@@ -16,7 +16,9 @@ import (
 )
 
 const (
-	json = iota
+	SQLite   string = "sqlite"
+	Postgres string = "postgres"
+	json            = iota
 	text
 )
 
@@ -32,6 +34,7 @@ var (
 	databaseName     string
 	databaseUser     string
 	databasePassword string
+	databaseType     string
 	versionFlag      bool
 )
 
@@ -84,6 +87,7 @@ type Database struct {
 	Password string `mapstructure:"password"`
 	Timeout  int    `mapstructure:"timeout"`
 	MaxConns int32  `mapstructure:"max_conns"`
+	DBType   string `mapstructure:"db_type"`
 }
 
 // New make and return a new config.
@@ -92,6 +96,7 @@ func New(version, build string) (*Config, error) {
 	// Set defaults
 	viper.SetDefault("database.timeout", 5)
 	viper.SetDefault("database.max_conns", 5)
+	viper.SetDefault("database.db_type", SQLite)
 
 	// Set enviroment prefix and bind to viper.
 	viper.SetEnvPrefix("EGRA")
@@ -116,6 +121,7 @@ func New(version, build string) (*Config, error) {
 	pflag.StringVarP(&databaseName, "database.name", "N", "gapi", "database name")
 	pflag.StringVarP(&databaseUser, "database.user", "U", "postgres", "database user")
 	pflag.StringVarP(&databasePassword, "database.password", "W", "postgres", "database password")
+	pflag.StringVarP(&databaseType, "database.db_type", "T", "sqlite", "database type")
 	pflag.BoolVarP(&versionFlag, "version", "v", false, "show version and build info")
 	pflag.Parse()
 
@@ -155,6 +161,9 @@ func New(version, build string) (*Config, error) {
 	if err := viper.BindPFlag("database.password", pflag.Lookup("database.password")); err != nil {
 		return nil, err
 	}
+	if err := viper.BindPFlag("database.db_type", pflag.Lookup("database.db_type")); err != nil {
+		return nil, err
+	}
 
 	if configPath != "" {
 		// Use config file from the flag.
@@ -183,7 +192,7 @@ func New(version, build string) (*Config, error) {
 	if err != nil {
 		return nil, err
 	}
-
+	fmt.Println(cfg)
 	cfg.Version = version
 	cfg.Build = build
 

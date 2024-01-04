@@ -3,9 +3,12 @@ package app
 
 import (
 	"context"
+	"log"
 	"log/slog"
 	"net/http"
 	"time"
+
+	pg "github.com/mixanemca/example-gorilla-rest-api/internal/storage/postgres"
 
 	"github.com/gorilla/mux"
 	_ "github.com/mixanemca/example-gorilla-rest-api/docs"
@@ -13,7 +16,8 @@ import (
 	"github.com/mixanemca/example-gorilla-rest-api/internal/app/api/middleware"
 	"github.com/mixanemca/example-gorilla-rest-api/internal/app/service"
 	"github.com/mixanemca/example-gorilla-rest-api/internal/config"
-	pg "github.com/mixanemca/example-gorilla-rest-api/internal/storage"
+	"github.com/mixanemca/example-gorilla-rest-api/internal/storage/sqlite"
+
 	httpSwagger "github.com/swaggo/http-swagger"
 )
 
@@ -27,8 +31,18 @@ type app struct {
 func New(cfg config.Config, logger *slog.Logger) *app {
 	logger.Debug("Create new API app")
 
-	db := pg.NewConnection(cfg)
-	userRepo := v1.NewUserRepository(db)
+	var userRepo v1.UserRepository
+	switch cfg.Database.DBType { // set database type
+	case config.Postgres:
+		db := pg.NewConnection(cfg, logger)
+		userRepo = v1.NewUserRepositoryPg(db)
+	case config.SQLite:
+		db := sqlite.NewConnection(logger)
+		userRepo = v1.NewUserRepositorySqlite(db)
+	default:
+		log.Fatal("field to sen any database type")
+	}
+
 	service := service.NewService(userRepo)
 
 	return &app{

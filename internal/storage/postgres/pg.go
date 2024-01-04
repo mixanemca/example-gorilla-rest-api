@@ -6,6 +6,7 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"log/slog"
 	"net/url"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -16,7 +17,7 @@ import (
 )
 
 // NewConnection for create connection to database
-func NewConnection(cfg config.Config) *pgxpool.Pool {
+func NewConnection(cfg config.Config, logger *slog.Logger) *pgxpool.Pool {
 	connStr := fmt.Sprintf("%s://%s:%s@%s:%d/%s?sslmode=disable&connect_timeout=%d",
 		"postgres",
 		url.QueryEscape(cfg.Database.User),
@@ -55,6 +56,7 @@ func NewConnection(cfg config.Config) *pgxpool.Pool {
 	if err != nil {
 		log.Fatalf("filed to init migrations %s", err.Error())
 	}
+	logger.Info("connected to Postgres DB succsessfuly")
 
 	return conn
 }
