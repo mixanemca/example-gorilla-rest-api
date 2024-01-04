@@ -1,3 +1,4 @@
+// Package migrations for update migrations
 package migrations
 
 import (
