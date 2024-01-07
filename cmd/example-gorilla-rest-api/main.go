@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"log"
 	"log/slog"
 	"os/signal"
 	"syscall"
@@ -24,7 +23,8 @@ var (
 func main() {
 	cfg, err := config.New(version, build)
 	if err != nil {
-		log.Fatalf("error occurred while reading config: %s\n", err.Error()) // TODO: change when external logger was added
+		slog.Error("error occurred while reading config", err)
+		return
 	}
 	if cfg == nil {
 		slog.Error("config is empty")
@@ -47,7 +47,11 @@ func main() {
 	log.Debug("debug messages are enabled")
 
 	// start HTTP server
-	app := app.New(*cfg, log)
+	app, err := app.New(*cfg, log)
+	if err != nil {
+		slog.Error("error occurred while try to create app", err)
+		return
+	}
 	app.Run()
 
 	// gracefully shutdown HTTP server

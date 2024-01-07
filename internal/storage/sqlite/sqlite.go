@@ -3,7 +3,6 @@ package sqlite
 
 import (
 	"database/sql"
-	"log"
 	"log/slog"
 
 	_ "github.com/mattn/go-sqlite3"
@@ -25,17 +24,19 @@ CREATE TABLE IF NOT EXISTS users (
 `
 
 // NewConnection for create connection to database
-func NewConnection(logger *slog.Logger) *sql.DB {
+func NewConnection(logger *slog.Logger) (*sql.DB, error) {
 	db, err := sql.Open("sqlite3", ":memory:") // memory placed
 	if err != nil {
-		log.Fatalf("filed to create sqlite connection %s", err.Error())
+		logger.Error("filed to create sqlite connection", err)
+		return nil, err
 	}
 	if err := createUsersTable(db); err != nil {
-		log.Fatalf("failed to create users table %s", err.Error())
+		logger.Error("failed to create users table", err)
+		return nil, err
 	}
 	logger.Info("connected to SQLite successfully")
 
-	return db
+	return db, nil
 }
 
 // createUsersTable for create table in database

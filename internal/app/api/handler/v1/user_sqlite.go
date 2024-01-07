@@ -25,13 +25,16 @@ type UserRepoSqlite struct {
 	translator ut.Translator
 }
 
-func NewUserRepositorySqlite(db *sql.DB) *UserRepoSqlite {
-	validator, translator := utils.NewValidator()
+func NewUserRepositorySqlite(db *sql.DB) (*UserRepoSqlite, error) {
+	validator, translator, err := utils.NewValidator()
+	if err != nil {
+		return nil, err
+	}
 	return &UserRepoSqlite{
 		db:         db,
 		validate:   validator,
 		translator: translator,
-	}
+	}, err
 }
 
 // CreateUser method for create new user
@@ -49,7 +52,7 @@ func (u UserRepoSqlite) CreateUser(w http.ResponseWriter, r *http.Request) {
 	// Parse the JSON data from the request body and store it in the user variable
 	decoder := json.NewDecoder(r.Body)
 	if err := decoder.Decode(&user); err != nil {
-		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		http.Error(w, "Invalid JSON "+err.Error(), http.StatusBadRequest)
 		return
 	}
 	if err := u.validate.Struct(user); err != nil {
@@ -216,11 +219,12 @@ func (u UserRepoSqlite) DeleteUser(w http.ResponseWriter, r *http.Request) {
 	// сheck if the user exists
 	rows, err := u.getUserByID(w, r, id)
 	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	rows.Close()
 
-	query := "UPDATE  users SET deleted_at=$1 WHERE id=$2;"
+	query := "UPDATE users SET deleted_at=$1 WHERE id=$2;"
 	_, err = u.db.Exec(query, time.Now(), id)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)

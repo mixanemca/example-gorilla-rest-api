@@ -28,17 +28,29 @@ type app struct {
 	service          *service.Service
 }
 
-func New(cfg config.Config, logger *slog.Logger) *app {
+func New(cfg config.Config, logger *slog.Logger) (*app, error) {
 	logger.Debug("Create new API app")
 
 	var userRepo v1.UserRepository
 	switch cfg.Database.DBType { // set database type
-	case config.Postgres:
-		db := pg.NewConnection(cfg, logger)
-		userRepo = v1.NewUserRepositoryPg(db)
-	case config.SQLite:
-		db := sqlite.NewConnection(logger)
-		userRepo = v1.NewUserRepositorySqlite(db)
+	case config.DBTypePostgres:
+		db, err := pg.NewConnection(cfg, logger)
+		if err != nil {
+			return nil, err
+		}
+		userRepo, err = v1.NewUserRepositoryPg(db)
+		if err != nil {
+			return nil, err
+		}
+	case config.DBTypeSQLite:
+		db, err := sqlite.NewConnection(logger)
+		if err != nil {
+			return nil, err
+		}
+		userRepo, err = v1.NewUserRepositorySqlite(db)
+		if err != nil {
+			return nil, err
+		}
 	default:
 		log.Fatal("field to sen any database type")
 	}
@@ -52,7 +64,7 @@ func New(cfg config.Config, logger *slog.Logger) *app {
 			Addr: cfg.HTTP.Address,
 		},
 		service: service,
-	}
+	}, nil
 }
 
 func (a *app) Run() {

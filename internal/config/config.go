@@ -16,9 +16,12 @@ import (
 )
 
 const (
-	SQLite   string = "sqlite"
-	Postgres string = "postgres"
-	json            = iota
+	DBTypeSQLite   string = "sqlite"
+	DBTypePostgres string = "postgres"
+)
+
+const (
+	json = iota
 	text
 )
 
@@ -96,7 +99,7 @@ func New(version, build string) (*Config, error) {
 	// Set defaults
 	viper.SetDefault("database.timeout", 5)
 	viper.SetDefault("database.max_conns", 5)
-	viper.SetDefault("database.db_type", SQLite)
+	viper.SetDefault("database.db_type", DBTypeSQLite)
 
 	// Set enviroment prefix and bind to viper.
 	viper.SetEnvPrefix("EGRA")
@@ -192,7 +195,7 @@ func New(version, build string) (*Config, error) {
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println(cfg)
+
 	cfg.Version = version
 	cfg.Build = build
 
