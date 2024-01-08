@@ -3,9 +3,12 @@ package app
 
 import (
 	"context"
+	"log"
 	"log/slog"
 	"net/http"
 	"time"
+
+	pg "github.com/mixanemca/example-gorilla-rest-api/internal/storage/postgres"
 
 	"github.com/gorilla/mux"
 	_ "github.com/mixanemca/example-gorilla-rest-api/docs"
@@ -13,7 +16,8 @@ import (
 	"github.com/mixanemca/example-gorilla-rest-api/internal/app/api/middleware"
 	"github.com/mixanemca/example-gorilla-rest-api/internal/app/service"
 	"github.com/mixanemca/example-gorilla-rest-api/internal/config"
-	pg "github.com/mixanemca/example-gorilla-rest-api/internal/storage"
+	"github.com/mixanemca/example-gorilla-rest-api/internal/storage/sqlite"
+
 	httpSwagger "github.com/swaggo/http-swagger"
 )
 
@@ -24,11 +28,33 @@ type app struct {
 	service          *service.Service
 }
 
-func New(cfg config.Config, logger *slog.Logger) *app {
+func New(cfg config.Config, logger *slog.Logger) (*app, error) {
 	logger.Debug("Create new API app")
 
-	db := pg.NewConnection(cfg)
-	userRepo := v1.NewUserRepository(db)
+	var userRepo v1.UserRepository
+	switch cfg.Database.DBType { // set database type
+	case config.DBTypePostgres:
+		db, err := pg.NewConnection(cfg, logger)
+		if err != nil {
+			return nil, err
+		}
+		userRepo, err = v1.NewUserRepositoryPg(db, logger)
+		if err != nil {
+			return nil, err
+		}
+	case config.DBTypeSQLite:
+		db, err := sqlite.NewConnection(logger)
+		if err != nil {
+			return nil, err
+		}
+		userRepo, err = v1.NewUserRepositorySqlite(db, logger)
+		if err != nil {
+			return nil, err
+		}
+	default:
+		log.Fatal("field to sen any database type")
+	}
+
 	service := service.NewService(userRepo)
 
 	return &app{
@@ -38,7 +64,7 @@ func New(cfg config.Config, logger *slog.Logger) *app {
 			Addr: cfg.HTTP.Address,
 		},
 		service: service,
-	}
+	}, nil
 }
 
 func (a *app) Run() {

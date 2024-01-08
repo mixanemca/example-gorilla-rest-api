@@ -5,7 +5,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"log"
+	"log/slog"
 	"net/url"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -16,7 +16,7 @@ import (
 )
 
 // NewConnection for create connection to database
-func NewConnection(cfg config.Config) *pgxpool.Pool {
+func NewConnection(cfg config.Config, logger *slog.Logger) (*pgxpool.Pool, error) {
 	connStr := fmt.Sprintf("%s://%s:%s@%s:%d/%s?sslmode=disable&connect_timeout=%d",
 		"postgres",
 		url.QueryEscape(cfg.Database.User),
@@ -28,7 +28,8 @@ func NewConnection(cfg config.Config) *pgxpool.Pool {
 
 	poolConfig, err := pgxpool.ParseConfig(connStr)
 	if err != nil {
-		log.Fatalf("filed to parse config for database %s", err.Error())
+		logger.Error("filed to parse config for database", err)
+		return nil, err
 	}
 
 	// we set the maximum number of connections that can be in waiting.
@@ -36,25 +37,30 @@ func NewConnection(cfg config.Config) *pgxpool.Pool {
 
 	conn, err := pgxpool.NewWithConfig(context.Background(), poolConfig)
 	if err != nil {
-		log.Fatalf("filed to create database pool %s", err.Error())
+		logger.Error("filed to create database pool", err)
+		return nil, err
 	}
 
 	// check connection
 	_, err = conn.Exec(context.Background(), ";")
 	if err != nil {
-		log.Fatalf("filed to set database connection %s", err.Error())
+		logger.Error("filed to set database connection", err)
+		return nil, err
 	}
 
 	// make sql conn and init migrations
 	mdb, _ := sql.Open("postgres", poolConfig.ConnString())
 	err = mdb.Ping()
 	if err != nil {
-		log.Fatalf("filed to set database connection for migrations %s", err.Error())
+		logger.Error("filed to set database connection for migrations", err)
+		return nil, err
 	}
 	err = goose.Up(mdb, "/var")
 	if err != nil {
-		log.Fatalf("filed to init migrations %s", err.Error())
+		logger.Error("filed to init migrations", err)
+		return nil, err
 	}
+	logger.Info("connected to Postgres DB succsessfuly")
 
-	return conn
+	return conn, nil
 }

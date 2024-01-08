@@ -17,5 +17,6 @@ database:
   password: "password"
   timeout: 5
   max_conns: 5
+  db_type: sqlite
 
 shutdown_timeout: 5s
