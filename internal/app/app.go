@@ -3,7 +3,7 @@ package app
 
 import (
 	"context"
-	"log"
+	"errors"
 	"log/slog"
 	"net/http"
 	"time"
@@ -52,7 +52,8 @@ func New(cfg config.Config, logger *slog.Logger) (*app, error) {
 			return nil, err
 		}
 	default:
-		log.Fatal("field to sen any database type")
+		logger.Error("field to set any database type")
+		return nil, errors.New("field to set any database type")
 	}
 
 	service := service.NewService(userRepo)
