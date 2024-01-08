@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -23,9 +24,10 @@ type UserRepoSqlite struct {
 	db         *sql.DB
 	validate   *validator.Validate
 	translator ut.Translator
+	log        *slog.Logger
 }
 
-func NewUserRepositorySqlite(db *sql.DB) (*UserRepoSqlite, error) {
+func NewUserRepositorySqlite(db *sql.DB, logger *slog.Logger) (*UserRepoSqlite, error) {
 	validator, translator, err := utils.NewValidator()
 	if err != nil {
 		return nil, err
@@ -34,6 +36,7 @@ func NewUserRepositorySqlite(db *sql.DB) (*UserRepoSqlite, error) {
 		db:         db,
 		validate:   validator,
 		translator: translator,
+		log:        logger,
 	}, err
 }
 
@@ -52,6 +55,7 @@ func (u UserRepoSqlite) CreateUser(w http.ResponseWriter, r *http.Request) {
 	// Parse the JSON data from the request body and store it in the user variable
 	decoder := json.NewDecoder(r.Body)
 	if err := decoder.Decode(&user); err != nil {
+		u.log.Error("filed to decode json", err)
 		http.Error(w, "Invalid JSON "+err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -59,19 +63,20 @@ func (u UserRepoSqlite) CreateUser(w http.ResponseWriter, r *http.Request) {
 		jsonErrResponse(w, u.translator, err)
 		return
 	}
-
 	dbUser := user.ConvertToEntity()
 	dbUser.ID = uuid.New().String()
 
 	query := "INSERT INTO users (id, created_at, updated_at, deleted_at, name, surname, username, email, phone) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id"
 	stmt, err := u.db.Prepare(query)
 	if err != nil {
+		u.log.Error("filed to prepare query", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	defer stmt.Close()
 	_, err = stmt.Exec(dbUser.ID, time.Now(), time.Now(), nil, dbUser.Name, dbUser.Surname, dbUser.Username, dbUser.Email, dbUser.Phone)
 	if err != nil {
+		u.log.Error("filed to create user", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -97,6 +102,7 @@ func (u UserRepoSqlite) GetUsers(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, err.Error(), http.StatusNotFound)
 			return
 		}
+		u.log.Error("filed to get user", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -106,6 +112,7 @@ func (u UserRepoSqlite) GetUsers(w http.ResponseWriter, r *http.Request) {
 		user := models.UserResponse{}
 		err := rows.Scan(&user.ID, &user.Name, &user.Surname, &user.Username, &user.Email, &user.Phone)
 		if err != nil {
+			u.log.Error("filed to get users", err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -130,10 +137,15 @@ func (u UserRepoSqlite) GetUserByID(w http.ResponseWriter, r *http.Request) {
 
 	rows, err := u.getUserByID(w, r, id)
 	if err != nil {
-		return
+		if !errors.Is(err, sql.ErrNoRows) {
+			u.log.Error("filed to get user", err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 	}
 
 	if err := rows.Scan(&user.ID, &user.Name, &user.Surname, &user.Username, &user.Email, &user.Phone); err != nil {
+		u.log.Error("filed to scan user info to struct", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -179,14 +191,19 @@ func (u UserRepoSqlite) UpdateUser(w http.ResponseWriter, r *http.Request) {
 	// сheck if the user exists
 	rows, err := u.getUserByID(w, r, id)
 	if err != nil {
-		return
+		if !errors.Is(err, sql.ErrNoRows) {
+			u.log.Error("filed to get user", err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 	}
 	rows.Close()
 
 	// Parse the JSON data from the request body and store it in the user variable
 	decoder := json.NewDecoder(r.Body)
 	if err := decoder.Decode(&user); err != nil {
-		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		u.log.Error("filed to decode json", err)
+		http.Error(w, "Invalid JSON"+err.Error(), http.StatusBadRequest)
 		return
 	}
 	if err := u.validate.Struct(user); err != nil {
@@ -196,8 +213,16 @@ func (u UserRepoSqlite) UpdateUser(w http.ResponseWriter, r *http.Request) {
 
 	dbUser := user.ConvertToEntity()
 	query := "UPDATE  users SET updated_at=$1, name=$2, surname=$3, username=$4, email=$5, phone=$6  WHERE id=$7;"
+	stmt, err := u.db.Prepare(query)
+	if err != nil {
+		u.log.Error("filed to prepare query", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	defer stmt.Close()
 	_, err = u.db.Exec(query, time.Now(), dbUser.Name, dbUser.Surname, dbUser.Username, dbUser.Email, dbUser.Phone, id)
 	if err != nil {
+		u.log.Error("filed to update user", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -219,14 +244,18 @@ func (u UserRepoSqlite) DeleteUser(w http.ResponseWriter, r *http.Request) {
 	// сheck if the user exists
 	rows, err := u.getUserByID(w, r, id)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+		if !errors.Is(err, sql.ErrNoRows) {
+			u.log.Error("filed to get user", err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 	}
 	rows.Close()
 
 	query := "UPDATE users SET deleted_at=$1 WHERE id=$2;"
 	_, err = u.db.Exec(query, time.Now(), id)
 	if err != nil {
+		u.log.Error("filed to delete user", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}

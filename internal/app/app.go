@@ -38,7 +38,7 @@ func New(cfg config.Config, logger *slog.Logger) (*app, error) {
 		if err != nil {
 			return nil, err
 		}
-		userRepo, err = v1.NewUserRepositoryPg(db)
+		userRepo, err = v1.NewUserRepositoryPg(db, logger)
 		if err != nil {
 			return nil, err
 		}
@@ -47,7 +47,7 @@ func New(cfg config.Config, logger *slog.Logger) (*app, error) {
 		if err != nil {
 			return nil, err
 		}
-		userRepo, err = v1.NewUserRepositorySqlite(db)
+		userRepo, err = v1.NewUserRepositorySqlite(db, logger)
 		if err != nil {
 			return nil, err
 		}

@@ -4,6 +4,7 @@ package v1
 import (
 	"encoding/json"
 	"errors"
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -21,9 +22,10 @@ type UserRepoPg struct {
 	db         *pgxpool.Pool
 	validate   *validator.Validate
 	translator ut.Translator
+	log        *slog.Logger
 }
 
-func NewUserRepositoryPg(db *pgxpool.Pool) (*UserRepoPg, error) {
+func NewUserRepositoryPg(db *pgxpool.Pool, logger *slog.Logger) (*UserRepoPg, error) {
 	validator, translator, err := utils.NewValidator()
 	if err != nil {
 		return nil, err
@@ -32,6 +34,7 @@ func NewUserRepositoryPg(db *pgxpool.Pool) (*UserRepoPg, error) {
 		db:         db,
 		validate:   validator,
 		translator: translator,
+		log:        logger,
 	}, nil
 }
 
@@ -50,6 +53,7 @@ func (u UserRepoPg) CreateUser(w http.ResponseWriter, r *http.Request) {
 	// Parse the JSON data from the request body and store it in the user variable
 	decoder := json.NewDecoder(r.Body)
 	if err := decoder.Decode(&user); err != nil {
+		u.log.Error("filed to decode", err)
 		http.Error(w, "Invalid JSON "+err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -63,6 +67,7 @@ func (u UserRepoPg) CreateUser(w http.ResponseWriter, r *http.Request) {
 	query := "INSERT INTO users (created_at, updated_at, deleted_at, name, surname, username, email, phone) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id"
 	err := u.db.QueryRow(r.Context(), query, time.Now(), time.Now(), nil, dbUser.Name, dbUser.Surname, dbUser.Username, dbUser.Email, dbUser.Phone).Scan(&userID.ID)
 	if err != nil {
+		u.log.Error("filed to create user", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -83,10 +88,11 @@ func (u UserRepoPg) GetUsers(w http.ResponseWriter, r *http.Request) {
 	query := "SELECT id, name, surname, username, email, phone FROM users WHERE deleted_at IS NULL;"
 	rows, err := u.db.Query(r.Context(), query)
 	if err != nil {
-		if err == pgx.ErrNoRows {
+		if errors.Is(err, pgx.ErrNoRows) {
 			http.Error(w, err.Error(), http.StatusNotFound)
 			return
 		}
+		u.log.Error("filed to get user", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -96,6 +102,7 @@ func (u UserRepoPg) GetUsers(w http.ResponseWriter, r *http.Request) {
 		user := models.UserResponse{}
 		err := rows.Scan(&user.ID, &user.Name, &user.Surname, &user.Username, &user.Email, &user.Phone)
 		if err != nil {
+			u.log.Error("filed to get users", err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -120,10 +127,15 @@ func (u UserRepoPg) GetUserByID(w http.ResponseWriter, r *http.Request) {
 
 	rows, err := u.getUserByID(w, r, id)
 	if err != nil {
-		return
+		if !errors.Is(err, pgx.ErrNoRows) {
+			u.log.Error("filed to get user", err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 	}
 
 	if err := rows.Scan(&user.ID, &user.Name, &user.Surname, &user.Username, &user.Email, &user.Phone); err != nil {
+		u.log.Error("filed to scan user info to struct", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -169,14 +181,19 @@ func (u UserRepoPg) UpdateUser(w http.ResponseWriter, r *http.Request) {
 	// сheck if the user exists
 	rows, err := u.getUserByID(w, r, id)
 	if err != nil {
-		return
+		if !errors.Is(err, pgx.ErrNoRows) {
+			u.log.Error("filed to get user", err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 	}
 	rows.Close()
 
 	// Parse the JSON data from the request body and store it in the user variable
 	decoder := json.NewDecoder(r.Body)
 	if err := decoder.Decode(&user); err != nil {
-		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		u.log.Error("filed to decode json", err)
+		http.Error(w, "Invalid JSON"+err.Error(), http.StatusBadRequest)
 		return
 	}
 	if err := u.validate.Struct(user); err != nil {
@@ -188,6 +205,7 @@ func (u UserRepoPg) UpdateUser(w http.ResponseWriter, r *http.Request) {
 	query := "UPDATE  users SET updated_at=$1, name=$2, surname=$3, username=$4, email=$5, phone=$6  WHERE id=$7;"
 	_, err = u.db.Exec(r.Context(), query, time.Now(), dbUser.Name, dbUser.Surname, dbUser.Username, dbUser.Email, dbUser.Phone, id)
 	if err != nil {
+		u.log.Error("filed to update user", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -209,14 +227,18 @@ func (u UserRepoPg) DeleteUser(w http.ResponseWriter, r *http.Request) {
 	// сheck if the user exists
 	rows, err := u.getUserByID(w, r, id)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+		if !errors.Is(err, pgx.ErrNoRows) {
+			u.log.Error("filed to get user", err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 	}
 	rows.Close()
 
 	query := "UPDATE users SET deleted_at=$1 WHERE id=$2;"
 	_, err = u.db.Exec(r.Context(), query, time.Now(), id)
 	if err != nil {
+		u.log.Error("filed to delete", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
